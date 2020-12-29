@@ -19,24 +19,33 @@ When you click the **Knit** button a document will be generated that includes bo
 library(rlist)
 library(clustvarsel)
 library(vscc)
-#library(purrr)
-sim_data = list()
 
-shuffle_fn <- function(data, permute_no){
-  n = nrow(data)
-  d = ncol(data)
-  shuff_data = array(NA, dim = c(d, permute_no, n, d))
-  for (i in 1:d){
-    for (perm in 1:permute_no){
-      s_data = cbind(data[ , -i], sample(data[,i]))
-      shuff_data[ i, perm, , ] = s_data
-    } 
+feature_importance <- function(data, no_shufle, cluster_fn){
+  
+  shuffle_fn <- function(data, permute_no){
+    n = nrow(data)
+    d = ncol(data)
+    shuff_data = array(NA, dim = c(d, permute_no, n, d))
+    for (i in 1:d){
+      for (perm in 1:permute_no){
+        s_data = cbind(data[ , -i], sample(data[,i]))
+        shuff_data[ i, perm, , ] = s_data
+      } 
+    }
+    return(shuff_data)
   }
-  return(shuff_data)
+  
+  data = as.matrix(data)
+  permuted_data  =  shuffle_fn(data = data, no_shufle)
+  permute_fn = apply(permuted_data, 1, function(a){apply(a, 1, cluster_fn)})
+  mean_perm = apply(permute_fn, 2, mean)
+  
+  return(mean_perm) 
 }
 
+
 mclust_fn <- function(data, G = 2, verbose = FALSE){
-  mod_clust = Mclust(data, G = G)
+  mod_clust = Mclust(data, G = G, verbose=  verbose)
   return(mod_clust$loglik)
 }
 
@@ -44,7 +53,33 @@ kmeans_fn <- function(data, G = 2){
   mod = kmeans(data, centers = G)
   return(mod$tot.withinss)
 }
+
+
 ```
+
+```{r}
+data = iris[ ,c(1:4)]
+
+mclust_vals = feature_importance(data = as.matrix(data), no_shufle = 30, cluster_fn = mclust_fn)
+
+kmeans_vals = feature_importance(data = as.matrix(data), no_shufle = 30, cluster_fn = kmeans_fn)
+```
+
+```{r}
+mclust_original_data = mclust_fn(data, G = 2, verbose = FALSE)
+kmeans_original_data = kmeans_fn(data, G = 2)
+
+im_mclust = (mean_mclust_perm - mclus_irisdata$loglik)/mclus_irisdata$loglik
+
+```
+
+
+```{r}
+a = "loglik"
+temp_mclust[a][[1]]
+
+```
+
 
 
 ```{r DataPrep_Sim1}
